@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+set -x
 
 if ! test -f .volta/bin/volta ; then
   curl https://get.volta.sh | bash
@@ -11,11 +12,15 @@ bash rustup-init.sh -y
 rm rustup-init.sh
 
 if ! echo "$PATH" | grep go ; then
+  # shellcheck disable=SC2016
   echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.zshrc
 fi
 
 if ! grep starship .zshrc ; then
-  echo 'eval "$(starship init zsh)"' >> ~/.zshrc
+  if ! grep starship ~/.zshrc ; then
+    # shellcheck disable=SC2016
+    echo 'eval "$(starship init zsh)"' >> ~/.zshrc
+  fi
 fi
 
 if ! test -d .zim ; then
@@ -30,6 +35,13 @@ fi
 mkdir -p ssd/save
 if ls ssd/save/* &> /dev/null ; then
   mv ssd/save/* /mnt/disks/ssd/
+fi
+
+if command -v zoxide > /dev/null ; then
+  if ! grep zoxide ~/.zshrc ; then
+    # shellcheck disable=SC2016
+    echo 'eval "$(zoxide init zsh)" >/dev/null || true' >> ~/.zshrc
+  fi
 fi
 
 tab --install all || echo "tab --install all will fail, but it can be ignored"

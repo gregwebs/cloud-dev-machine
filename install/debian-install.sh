@@ -8,6 +8,9 @@ apt install -y wget zsh fzf git shellcheck jq neovim bc xclip
 # Build tools
 apt install -y make cmake gcc g++
 
+# Podman only available on newer versions of distros
+apt install -y podman zoxide
+
 # Docker
 apt install -y \
     apt-transport-https \
@@ -23,7 +26,9 @@ apt-get update
 apt-get install -y docker-ce docker-ce-cli containerd.io
 
 if ! command -v starship ; then
+  set -x
   sh -c "$(curl -fsSL https://starship.rs/install.sh)" -- -y
+  set +x
 fi
 
 if ! command -v rg ; then

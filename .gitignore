@@ -1,5 +1,6 @@
 Pulumi.*
 /install/authorized_keys
+/install/.gitconfig
 /bin/
 /node_modules/
 package-lock.json

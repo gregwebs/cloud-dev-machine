@@ -9,37 +9,68 @@ Automated tooling for a cloud dev environment
 * Mount a fast local SSD to /mnt/disks/ssd
   * This is not maintained across shutdown and resume
 
-# Deploying a dev image
+# Actions
+
+## Bootstrap
+
+Logged in via gcloud
+
+	gcloud auth login
+
+Storing in GCP is resilient and works across machines.
+
+	pulumi login gs://$(whoami)-pulumi-dev-machine-state
+
+Initialize pulumi state. Storing in the local fs is faster
+
+	pulumi login file://state/dev-machine-state
+
+
+## Configuration
+
+When you first run this, it will complain about missing configurations. You need to set them with
+
+	pulumi config set KEY VALUE
+
+To see all the configurations, run:
+
+	pulumi config
+
+
+## Deploying a dev image
 
 	./just.sh resume
 
 ./just.sh will download and run `just` if it doesn't exist. You can place `just` in your PATH and then run `just` directly.
 
-# SSH
+## SSH
 
 	just ssh
 
 The SSH firewall is set to allow access only to your current ip address and is automatically updated when running commands.
 
 
-# Save money
+## Save money
 
 Save yourself some money when you are done by running
 
 	just shutdown
 
-This will preserve your cloud disk but wipe your local SSD.
-When you are back to work:
+This will preserve your cloud disk.
+It will copy your local SSD to the cloud disk (this may take some time).
+When you are ready to work again:
 
     just resume
 
-# Save even more
+Currently the system disk is not preserved, but resume will re-run all the installer scripts.
+
+## Save even more
 
 If you don't need your disks, run the following to destroy all infrastructure:
 
 	just destroy
 
-# Change instance type
+## Change instance type
 
 Don't want to wait so long for Rust to compile things?
 
@@ -49,13 +80,9 @@ Don't want to wait so long for Rust to compile things?
 
 Just remember to shut things down when you are finished.
 
-# Additional commands
+## Additional commands
 
     just --list
-
-# Sudo login
-
-	just ssh-gcloud bash -l
 
 # Using local SSD
 
@@ -74,6 +101,19 @@ For example:
 
 `just shutdown` will run the script `shutdown.sh` which will move the data to `$HOME/ssd/save`.
 `just resume` will move the data back to the ssd drive.
+
+
+## Sudo
+
+You can login as a user with sudo with:
+
+	just ssh-gcloud bash -l
+
+From there you can set the password for your normal user with:
+
+	sudo passwd <USER>
+
+Your normal user has sudo access.
 
 
 # TODO

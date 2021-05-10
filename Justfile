@@ -83,7 +83,11 @@ _install machine:
 	if test -f ~/.ssh/id_rsa.pub ; then
 	  cp ~/.ssh/id_rsa.pub install/authorized_keys
 	fi
-	just _scp "$machine" install/*
+	if test -f ~/.gitconfig ; then
+	  cp ~/.gitconfig install/.gitconfig
+	fi
+	setopt null_glob
+	just _scp "$machine" install/* install/.*
 	rm -f install/authorized_keys
 	./script/ssh -- bash ./all-install.sh
 
@@ -107,10 +111,11 @@ _machine:
 _pulumi-config: _install-pulumi
 	#!/usr/bin/env bash
 	set -euo pipefail
-	exec 3< <(curl ifconfig.me 2>/dev/null)
+	exec 3< <(curl --silent ifconfig.me 2>/dev/null)
 	config="$(pulumi config)"
 	if [[ -z "$(echo "$config" | grep gcp_image | awk '{print $2}')" ]] ; then
-	  pulumi config set gcp_image "debian-cloud/debian-10-buster-v20210420"
+	  pulumi config set gcp_image "debian-cloud-testing/debian-11-bullseye-v20210330"
+	  # pulumi config set gcp_image "debian-cloud/debian-10-buster-v20210420"
 	fi
 	if [[ -z "$(echo "$config" | grep gcp_user | awk '{print $2}')" ]] ; then
 	  pulumi config set gcp_user "$(whoami)"

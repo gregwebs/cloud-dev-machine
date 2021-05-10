@@ -14,4 +14,8 @@ if test -f authorized_keys ; then
     sudo mv authorized_keys "/home/$user/"
     sudo chown "$user:$user" "/home/$user/authorized_keys"
 fi
+if test -f .gitconfig ; then
+    sudo mv gitconfig "/home/$user/"
+    sudo chown "$user:$user" "/home/$user/.gitconfig"
+fi
 sudo su "$user" -l -c "$wd/user-install.sh"
