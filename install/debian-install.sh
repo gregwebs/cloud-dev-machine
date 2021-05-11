@@ -2,17 +2,18 @@
 set -euo pipefail
 set -x
 
-apt update && apt upgrade
+apt update && apt upgrade -y
 
 # Dev tools
-apt install -y wget zsh fzf git shellcheck jq neovim bc xclip
+apt install -y wget zsh fzf git shellcheck jq neovim bc xclip finger
 # Build tools
 apt install -y make cmake gcc g++
 
-# Podman only available on newer versions of distros
+# Only available on newer versions of distros
 apt install -y podman zoxide
 
 # Docker
+if ! command -v docker ; then
 apt install -y \
     apt-transport-https \
     ca-certificates \
@@ -25,6 +26,7 @@ echo \
   $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 apt-get update
 apt-get install -y docker-ce docker-ce-cli containerd.io
+fi
 
 if ! command -v starship ; then
   set -x
@@ -56,6 +58,4 @@ fi
 #  apt update
 #  apt install et
 # Compile from source instaed
-# sudo apt install -y build-essential libgflags-dev libprotobuf-dev protobuf-compiler libsodium-dev cmake git unzip zip
 #fi
-# sudo apt install libboost-dev libsodium-dev libncurses5-dev libprotobuf-dev protobuf-compiler libutempter-dev libcurl4-nss-dev libunwind-dev

@@ -6,3 +6,4 @@ Pulumi.*
 package-lock.json
 package.json
 tsconfig.json
+/.cache/

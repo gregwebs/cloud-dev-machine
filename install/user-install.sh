@@ -32,11 +32,6 @@ if test -f id_rsa.pub ; then
   mv id_rsa.pub ~/.ssh/
 fi
 
-mkdir -p ssd/save
-if ls ssd/save/* &> /dev/null ; then
-  mv ssd/save/* /mnt/disks/ssd/
-fi
-
 if command -v zoxide > /dev/null ; then
   if ! grep zoxide ~/.zshrc ; then
     # shellcheck disable=SC2016
@@ -45,3 +40,9 @@ if command -v zoxide > /dev/null ; then
 fi
 
 tab --install all || echo "tab --install all will fail, but it can be ignored"
+
+echo "final step, restoring data to SSD"
+mkdir -p ssd/save
+if ls ssd/save/* 2> /dev/null ; then
+  mv ssd/save/* /mnt/disks/ssd/
+fi

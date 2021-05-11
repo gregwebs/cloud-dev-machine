@@ -4,12 +4,30 @@ Automated tooling for a cloud dev environment
 
 * Bring up a dev machine with custom installlation scripts
 * SSH to the image
-* Shutdown and resume the image to save money
-  * Maintain your home directory across shutdown and resume
+* Auto-Shutdown the image to save money
+  * Maintain your data across shutdown and resume
+* Resume your instance with restored data
 * Mount a fast local SSD to /mnt/disks/ssd
   * This is not maintained across shutdown and resume
 
 # Actions
+
+## Deploying a dev image
+
+	./just.sh resume
+
+./just.sh will download and run `just` if it doesn't exist. You can place `just` in your PATH and then run `just` directly.
+
+This command may fail for you: see the Bootstrap and Configuration sections
+
+
+## SSH
+
+	just ssh
+
+The SSH firewall is set to allow access only to your current ip address and is automatically updated when running commands.
+The `resume` command will also ssh to the instance.
+
 
 ## Bootstrap
 
@@ -17,7 +35,7 @@ Logged in via gcloud
 
 	gcloud auth login
 
-Storing in GCP is resilient and works across machines.
+Store Pulumi state in GCP is resilient and works across machines.
 
 	pulumi login gs://$(whoami)-pulumi-dev-machine-state
 
@@ -37,19 +55,6 @@ To see all the configurations, run:
 	pulumi config
 
 
-## Deploying a dev image
-
-	./just.sh resume
-
-./just.sh will download and run `just` if it doesn't exist. You can place `just` in your PATH and then run `just` directly.
-
-## SSH
-
-	just ssh
-
-The SSH firewall is set to allow access only to your current ip address and is automatically updated when running commands.
-
-
 ## Save money
 
 Save yourself some money when you are done by running
@@ -60,7 +65,7 @@ This will preserve your cloud disk.
 It will copy your local SSD to the cloud disk (this may take some time).
 When you are ready to work again:
 
-    just resume
+	just resume
 
 Currently the system disk is not preserved, but resume will re-run all the installer scripts.
 
@@ -70,15 +75,23 @@ If you don't need your disks, run the following to destroy all infrastructure:
 
 	just destroy
 
+## Auto shutdown
+
+There is a cron job that will automatically shut down the instance if it isn't used for an hour (no processes running for your user other than idle sessions).
+
 ## Change instance type
 
 Don't want to wait so long for Rust to compile things?
 
-	pulumi config set gcp_machine_type n2-standard-4
+	pulumi config set gcp_machine_type n2-standard-8
 	just shutdown # if you already have a machine running
 	just resume
 
-Just remember to shut things down when you are finished.
+If you are using a bigger instance, try to shut things down when you are finished instead of waiting for auto-shutdown.
+
+## Eternal Terminal support
+
+`just ssh` will use Eternal Terminal rather than ssh if `et` is installed on your machine.
 
 ## Additional commands
 

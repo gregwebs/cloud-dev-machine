@@ -5,10 +5,10 @@ up: _pulumi-up install
 shutdown:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	config="$(just _fast-config)"
+	urn="$(pulumi stack export | jq -r '.deployment.resources[] | .urn' | grep 'greg-dev')"
+	config="$(pulumi config)"
 	gcp_user="$(echo "$config" | grep gcp_user | awk '{print $2}')"
 	./script/ssh -- sudo bash shutdown.sh
-	urn="$(pulumi stack export | jq -r '.deployment.resources[] | .urn' | grep 'greg-dev')"
 	pulumi destroy -f -t "$urn"
 
 # Destroy the entire setup
@@ -28,7 +28,8 @@ ssh +command='':
 	just _pulumi-config 2>/dev/null &
 	ip_address=$(gcloud beta compute instances describe --project "$project" --zone "$zone" "$machine" | grep natIP | awk '{print $2}')
 	ssh=ssh
-	if command -v et >/dev/null ; then
+	NO_ET=${NO_ET:-""}
+	if command -v et >/dev/null && [[ -z $NO_ET ]] ; then
 	  ssh=et
 	fi
 	set -x

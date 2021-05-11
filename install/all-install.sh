@@ -2,14 +2,19 @@
 set -euo pipefail
 set -x
 
-# Do this first
-# system packages (e.g. wget) may be needed by other installers
-sudo ./debian-install.sh
+croncmd="sudo /home/$(whoami)/auto-shutdown.sh > /home/$(whoami)/auto-shutdown.log 2>&1"
+cronjob="* * * 1 * $croncmd"
+if !  crontab -l | grep -F "$croncmd" ; then
+  ( crontab -l | echo "$cronjob" ) | crontab -
+fi
 
+sudo ./debian-preinstall.sh
 sudo ./linux-install.sh
+sudo ./debian-install.sh
 
 wd=$(pwd)
 user=$(curl --header 'Metadata-Flavor: Google' "http://metadata.google.internal/computeMetadata/v1/instance/attributes/user")
+
 if test -f authorized_keys ; then
     sudo mv authorized_keys "/home/$user/"
     sudo chown "$user:$user" "/home/$user/authorized_keys"
@@ -18,12 +23,21 @@ if test -f .gitconfig ; then
     sudo mv .gitconfig "/home/$user/"
     sudo chown "$user:$user" "/home/$user/.gitconfig"
 fi
-sudo su "$user" -l -c "$wd/user-install.sh"
 
 if ! command -v et >/dev/null && test -d "/home/$user/code/EternalTerminal" ; then
   cd "/home/$user/code/EternalTerminal/build"
-  # cmake -DCMAKE_MAKE_PROGRAM=/usr/bin/make ../
-  sudo make install
+  # Some of these may only be needed for building
+  sudo apt install libunwind-dev libboost-dev libsodium-dev libncurses5-dev libprotobuf-dev libutempter-dev libcurl4-nss-dev libsodium-dev libgflags-dev protobuf-compiler 
+  if test -x et && test -x etserver ; then
+    sudo cp et etserver /usr/bin/
+  else
+    sudo apt install -y build-essential cmake git unzip zip protobuf-compiler 
+    cmake -DCMAKE_MAKE_PROGRAM=/usr/bin/make ../
+    sudo make install
+  fi
   sudo cp ../systemctl/et.service /etc/systemd/system/
   sudo cp ../etc/et.cfg /etc/
+  sudo systemctl start et
 fi
+
+sudo su "$user" -l -c "$wd/user-install.sh"
