@@ -27,8 +27,12 @@ ssh +command='':
 	machine="$(just _machine)"
 	just _pulumi-config 2>/dev/null &
 	ip_address=$(gcloud beta compute instances describe --project "$project" --zone "$zone" "$machine" | grep natIP | awk '{print $2}')
+	ssh=ssh
+	if command -v et >/dev/null ; then
+	  ssh=et
+	fi
 	set -x
-	ssh "$gcp_user@$ip_address" {{command}}
+	exec "$ssh" "$gcp_user@$ip_address" {{command}}
 
 # SSH with the gcloud SSH command if SSH keys are not setup
 ssh-gcloud +command='':
@@ -85,9 +89,10 @@ _install machine:
 	fi
 	if test -f ~/.gitconfig ; then
 	  cp ~/.gitconfig install/.gitconfig
+	  just _scp "$machine" install/.gitconfig
 	fi
-	setopt null_glob
-	just _scp "$machine" install/* install/.*
+	shopt -s nullglob
+	just _scp "$machine" install/*
 	rm -f install/authorized_keys
 	./script/ssh -- bash ./all-install.sh
 

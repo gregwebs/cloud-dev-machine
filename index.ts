@@ -17,13 +17,20 @@ const labels = {
     email: gcpEmail.replace('@', '_').replace('.', '_'),
 }
 
-/* Allow SSH access but only from your IP address */
+/* Allow access but only from your IP address */
 const machineAccess = new gcp.compute.Firewall("dev-ssh", {
     network: "default",
     allows: [
         {
             protocol: "tcp",
-            ports: ["22"]
+            ports: [
+              "22",
+	      "2022" // Eternal Terminal
+	    ]
+        },
+        {
+            protocol: "udp",
+            ports: ["60001"] // mosh
         },
     ],
     targetTags: ["dev"],

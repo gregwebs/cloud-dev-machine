@@ -2,7 +2,8 @@
 set -euo pipefail
 set -x
 
-apt update
+apt update && apt upgrade
+
 # Dev tools
 apt install -y wget zsh fzf git shellcheck jq neovim bc xclip
 # Build tools
@@ -47,3 +48,14 @@ fi
 if ! grep 40123 /etc/security/limits.conf ; then
   echo "* soft nofile 40123" | tee -a /etc/security/limits.conf
 fi
+
+#if ! command -v et ; then
+#  Eternal terminal #does not yet work on Debian Bullseye
+#  echo "deb https://github.com/MisterTea/debian-et/raw/master/debian-source/ buster main" | tee -a /etc/apt/sources.list.d/et.list
+#  curl -sSL https://github.com/MisterTea/debian-et/raw/master/et.gpg | apt-key add -
+#  apt update
+#  apt install et
+# Compile from source instaed
+# sudo apt install -y build-essential libgflags-dev libprotobuf-dev protobuf-compiler libsodium-dev cmake git unzip zip
+#fi
+# sudo apt install libboost-dev libsodium-dev libncurses5-dev libprotobuf-dev protobuf-compiler libutempter-dev libcurl4-nss-dev libunwind-dev
