@@ -3,4 +3,4 @@ set -euo pipefail
 set -x
 
 # Packages needed for linux-install
-apt install -y wget 
+apt install -y wget

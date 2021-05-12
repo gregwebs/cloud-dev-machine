@@ -44,5 +44,6 @@ tab --install all || echo "tab --install all will fail, but it can be ignored"
 echo "final step, restoring data to SSD"
 mkdir -p ssd/save
 if ls ssd/save/* 2> /dev/null ; then
+  gsutil cp -r "gs:://$(whoami)-dev-machine" /mnt/disks/ssd/*
   mv ssd/save/* /mnt/disks/ssd/
 fi

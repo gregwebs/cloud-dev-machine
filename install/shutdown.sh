@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+set -x
 
 # The SSD data will be gone
 
@@ -10,5 +11,5 @@ mv /mnt/disks/ssd/tmp /tmp
 
 user=$(curl --header 'Metadata-Flavor: Google' "http://metadata.google.internal/computeMetadata/v1/instance/attributes/user")
 mkdir -p "/home/$user/ssd/save/"
-mv /mnt/disks/ssd/* "/home/$user/ssd/save/"
+gsutil cp -r /mnt/disks/ssd/* "gs:://${user}-dev-machine"
 sudo shutdown now

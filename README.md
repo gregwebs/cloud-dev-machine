@@ -8,7 +8,6 @@ Automated tooling for a cloud dev environment
   * Maintain your data across shutdown and resume
 * Resume your instance with restored data
 * Mount a fast local SSD to /mnt/disks/ssd
-  * This is not maintained across shutdown and resume
 
 # Actions
 
@@ -31,6 +30,10 @@ The `resume` command will also ssh to the instance.
 
 ## Bootstrap
 
+Assumed Dependencies:
+* gcloud
+* jq
+
 Logged in via gcloud
 
 	gcloud auth login
@@ -43,16 +46,15 @@ Initialize pulumi state. Storing in the local fs is faster
 
 	pulumi login file://state/dev-machine-state
 
-
 ## Configuration
 
 When you first run this, it will complain about missing configurations. You need to set them with
 
-	pulumi config set KEY VALUE
+	just set KEY VALUE
 
 To see all the configurations, run:
 
-	pulumi config
+	just get config
 
 
 ## Save money
@@ -83,7 +85,7 @@ There is a cron job that will automatically shut down the instance if it isn't u
 
 Don't want to wait so long for Rust to compile things?
 
-	pulumi config set gcp_machine_type n2-standard-8
+	just set gcp_machine_type n2-standard-8
 	just shutdown # if you already have a machine running
 	just resume
 
@@ -114,6 +116,7 @@ For example:
 
 `just shutdown` will run the script `shutdown.sh` which will move the data to `$HOME/ssd/save`.
 `just resume` will move the data back to the ssd drive.
+TODO: store in GCS
 
 
 ## Sudo

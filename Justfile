@@ -1,15 +1,44 @@
 # Bring up a dev machine
 up: _pulumi-up install
 
+get +args='':
+	pulumi config get {{args}}
+
+set +args='':
+	#!/usr/bin/env bash
+	set -euo pipefail
+	pulumi config set {{args}}
+	rm -f .cache/config-*
+
 # Shutdown the instance to reduce costs
 shutdown:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	urn="$(pulumi stack export | jq -r '.deployment.resources[] | .urn' | grep 'greg-dev')"
 	config="$(pulumi config)"
 	gcp_user="$(echo "$config" | grep gcp_user | awk '{print $2}')"
-	./script/ssh -- sudo bash shutdown.sh
+	project="$( echo "$config" | grep gcp_project | awk '{print $2}')"
+	zone="$(    echo "$config" | grep gcp_zone    | awk '{print $2}')"
+	machine="$(just _machine)"
+	set -x
+	status="$(gcloud beta compute instances describe --project "$project" --zone "$zone" "$machine" | grep status | awk '{print $2}')"
+	case "$status" in
+	TERMINATED|SUSPENDED)
+	  ;;
+	*)
+	  if ! ./script/ssh -- sudo bash shutdown.sh ; then
+	    echo "error during shutdown, run `just terminate` to terminate the instance" >&2
+	    exit 1
+	  fi
+	  ;;
+	esac
+	just terminate
+
+terminate:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	urn="$(pulumi stack export | jq -r '.deployment.resources[] | .urn' | grep 'instance')"
 	pulumi destroy -f -t "$urn"
+	rm -f .config/machine
 
 # Destroy the entire setup
 destroy +args='':
@@ -20,20 +49,30 @@ destroy +args='':
 ssh +command='':
 	#!/usr/bin/env bash
 	set -euo pipefail
-	config="$(just _fast-config)"
-	zone="$(    echo "$config" | grep gcp_zone    | awk '{print $2}')"
-	project="$( echo "$config" | grep gcp_project | awk '{print $2}')"
-	gcp_user="$(echo "$config" | grep gcp_user | awk '{print $2}')"
-	machine="$(just _machine)"
-	just _pulumi-config 2>/dev/null &
-	ip_address=$(gcloud beta compute instances describe --project "$project" --zone "$zone" "$machine" | grep natIP | awk '{print $2}')
 	ssh=ssh
 	NO_ET=${NO_ET:-""}
 	if command -v et >/dev/null && [[ -z $NO_ET ]] ; then
 	  ssh=et
 	fi
+	machine_address="$(just _machine-address)"
+	just _pulumi-config 2>/dev/null &
 	set -x
-	exec "$ssh" "$gcp_user@$ip_address" {{command}}
+	exec "$ssh" "$machine_address" {{command}}
+
+_machine-address:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	if [[ -f .cache/config-machine-address ]] ; then
+	  exec cat .cache/config-machine-address
+	fi
+	config="$(pulumi config)"
+	zone="$(    echo "$config" | grep gcp_zone    | awk '{print $2}')"
+	project="$( echo "$config" | grep gcp_project | awk '{print $2}')"
+	gcp_user="$(echo "$config" | grep gcp_user | awk '{print $2}')"
+	machine="$(just _machine)"
+	ip_address=$(gcloud beta compute instances describe --project "$project" --zone "$zone" "$machine" | grep natIP | awk '{print $2}')
+	echo "$gcp_user@$ip_address" > .cache/config-machine-address
+	echo "$gcp_user@$ip_address"
 
 # SSH with the gcloud SSH command if SSH keys are not setup
 ssh-gcloud +command='':
@@ -68,7 +107,8 @@ resume: _pulumi-up
 	project="$( echo "$config" | grep gcp_project | awk '{print $2}')"
 	machine="$(just _machine)"
 	set -x
-	case "$(gcloud beta compute instances describe --project "$project" --zone "$zone" "$machine" | grep status | awk '{print $2}')" in
+	status="$(gcloud beta compute instances describe --project "$project" --zone "$zone" "$machine" | grep status | awk '{print $2}')"
+	case "$status" in
 	TERMINATED)
 	  gcloud beta compute instances start --project "$project" "$machine"
 	  ;;
@@ -107,12 +147,28 @@ _scp machine +files:
 	gcloud compute scp --project "$project" --zone "$zone" {{files}} "{{machine}}":
 
 _pulumi-up: _pulumi-config
+	#!/usr/bin/env bash
+	set -euo pipefail
 	pulumi up -y
+	just _machine-set
 
 _machine:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	pulumi stack export | jq -r '.deployment.resources[] | .id' | grep 'greg-dev' | cut -d '/' -f 6
+	if [[ -f .cache/config-machine ]] ; then
+	  cat .cache/config-machine
+	else
+	  just _machine-set
+	fi
+
+_machine-set:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	rm -f .cache/config-machine
+	machine="$(pulumi stack export | jq -r '.deployment.resources[] | .id' | grep 'instance' | cut -d '/' -f 6)"
+	mkdir -p .cache
+	echo "$machine" > .cache/config-machine
+	echo "$machine"
 	
 _pulumi-config: _install-pulumi
 	#!/usr/bin/env bash
@@ -128,6 +184,7 @@ _pulumi-config: _install-pulumi
 	fi
 	my_ip_address=$(cat <&3)
 	if [[ $my_ip_address != $(echo "$config" | grep my_ip_address | awk '{print $2}') ]] ; then
+	  rm -f .cache/config-*
 	  pulumi config set my_ip_address "$my_ip_address" >/dev/null
 	fi
 
