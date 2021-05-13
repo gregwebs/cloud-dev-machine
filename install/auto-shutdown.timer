@@ -1,0 +1,12 @@
+[Unit]
+Description=Run auto-shutdown every 30 minutes
+Requires=auto-shutdown.service
+
+[Timer]
+Unit=auto-shutdown.service
+OnUnitInactiveSec=30m
+RandomizedDelaySec=15m
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

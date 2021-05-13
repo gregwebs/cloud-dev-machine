@@ -1,0 +1,10 @@
+[Unit]
+Description=Auto shutdown an idle machine
+Wants=auto-shutdown.timer
+
+[Service]
+ExecStart=/usr/local/bin/auto-shutdown.sh
+WorkingDirectory=/tmp
+
+[Install]
+WantedBy=multi-user.target

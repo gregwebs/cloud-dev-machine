@@ -10,8 +10,8 @@ gcp_user="$(echo "$config" | grep gcp_user    | awk '{print $2}')"
 
 if [[ -z "$*" ]] ; then
     set -x
-    gcloud beta compute ssh --zone "$zone" "$machine" --project "$project" -- sudo su -l "$gcp_user"
+    gcloud beta compute ssh --zone "$zone" --project "$project" "$machine" -- sudo su -l "$gcp_user"
 else
     set -x
-    gcloud beta compute ssh --zone "$zone" "$machine" --project "$project" -- "$@"
+    gcloud beta compute ssh --zone "$zone" --project "$project" "$machine" -- "$@"
 fi

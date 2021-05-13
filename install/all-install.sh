@@ -2,13 +2,11 @@
 set -euo pipefail
 set -x
 
-croncmd="sudo /home/$(whoami)/auto-shutdown.sh > /home/$(whoami)/auto-shutdown.log 2>&1"
-cronjob="* * * 1 * $croncmd"
-if !  crontab -l | grep -F "$croncmd" ; then
-  # crontab -l will exit with a non-zero code when empty
-  #( crontab -l | echo "$cronjob" ) | crontab -
-  echo "$cronjob" | crontab -
-fi
+sudo mv auto-shutdown.sh shutdown.sh /usr/local/bin/
+sudo mv auto-shutdown.service auto-shutdown.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable auto-shutdown.timer
+sudo systemctl start auto-shutdown
 
 sudo ./debian-preinstall.sh
 # Speed things up by running in parallel
@@ -31,16 +29,17 @@ fi
 wait "$install_pid"
 
 if ! command -v et >/dev/null && test -d "/home/$user/code/EternalTerminal" ; then
-  cd "/home/$user/code/EternalTerminal/build"
-  # Some of these may only be needed for building
-  sudo apt install -y libunwind-dev libboost-dev libsodium-dev libncurses5-dev libprotobuf-dev libutempter-dev libcurl4-nss-dev libsodium-dev libgflags-dev protobuf-compiler
-  if test -x et && test -x etserver ; then
-    sudo cp et etserver /usr/bin/
-  else
-    sudo apt install -y build-essential cmake git unzip zip protobuf-compiler 
+  sudo apt install -y libunwind-dev libprotobuf-dev libgflags-dev
+  cd "/home/$user/code/EternalTerminal"
+  mkdir -p build
+  cd build
+  if ! test -x et && test -x etserver ; then
+    sudo apt install -y pkg-config libboost-dev libsodium-dev libncurses5-dev libutempter-dev libcurl4-nss-dev libsodium-dev lprotobuf-compiler
+    sudo apt install -y build-essential cmake git unzip zip
     cmake -DCMAKE_MAKE_PROGRAM=/usr/bin/make ../
-    sudo make install
+    make
   fi
+  sudo cp et etserver etterminal /usr/bin/
   sudo cp ../systemctl/et.service /etc/systemd/system/
   sudo cp ../etc/et.cfg /etc/
   sudo systemctl start et

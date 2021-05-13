@@ -7,20 +7,15 @@ get +args='':
 set +args='':
 	#!/usr/bin/env bash
 	set -euo pipefail
-	pulumi config set {{args}}
 	rm -f .cache/config-*
+	pulumi config set {{args}}
 
 # Shutdown the instance to reduce costs
 shutdown:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	config="$(pulumi config)"
-	gcp_user="$(echo "$config" | grep gcp_user | awk '{print $2}')"
-	project="$( echo "$config" | grep gcp_project | awk '{print $2}')"
-	zone="$(    echo "$config" | grep gcp_zone    | awk '{print $2}')"
-	machine="$(just _machine)"
+	status="$(just status)"
 	set -x
-	status="$(gcloud beta compute instances describe --project "$project" --zone "$zone" "$machine" | grep status | awk '{print $2}')"
 	case "$status" in
 	TERMINATED|SUSPENDED)
 	  ;;
@@ -36,9 +31,10 @@ shutdown:
 terminate:
 	#!/usr/bin/env bash
 	set -euo pipefail
+	set -x
 	urn="$(pulumi stack export | jq -r '.deployment.resources[] | .urn' | grep 'instance')"
-	pulumi destroy -f -t "$urn"
-	rm -f .config/machine
+	rm -f .cache/config-*
+	pulumi destroy --yes -f -t "$urn"
 
 # Destroy the entire setup
 destroy +args='':
@@ -50,8 +46,8 @@ ssh +command='':
 	#!/usr/bin/env bash
 	set -euo pipefail
 	ssh=ssh
-	NO_ET=${NO_ET:-""}
-	if command -v et >/dev/null && [[ -z $NO_ET ]] ; then
+	ETERNAL_TERMINAL=${ETERNAL_TERMINAL:-""}
+	if command -v et >/dev/null && [[ -n $ETERNAL_TERMINAL ]] ; then
 	  ssh=et
 	fi
 	machine_address="$(just _machine-address)"
@@ -103,11 +99,10 @@ resume: _pulumi-up
 	#!/usr/bin/env bash
 	set -euo pipefail
 	config="$(just _fast-config)"
-	zone="$(    echo "$config" | grep gcp_zone    | awk '{print $2}')"
 	project="$( echo "$config" | grep gcp_project | awk '{print $2}')"
 	machine="$(just _machine)"
+	status="$(just status)"
 	set -x
-	status="$(gcloud beta compute instances describe --project "$project" --zone "$zone" "$machine" | grep status | awk '{print $2}')"
 	case "$status" in
 	TERMINATED)
 	  gcloud beta compute instances start --project "$project" "$machine"
@@ -118,6 +113,16 @@ resume: _pulumi-up
 	esac
 	just _install "$machine"
 	GCP_MACHINE="$machine" exec ./script/ssh
+
+status:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	config="$(just _fast-config)"
+	zone="$(    echo "$config" | grep gcp_zone    | awk '{print $2}')"
+	project="$( echo "$config" | grep gcp_project | awk '{print $2}')"
+	machine="$(just _machine)"
+	gcloud beta compute instances describe --project "$project" --zone "$zone" "$machine" | grep status | awk '{print $2}'
+
 
 _install machine:
 	#!/usr/bin/env bash

@@ -11,5 +11,5 @@ mv /mnt/disks/ssd/tmp /tmp
 
 user=$(curl --header 'Metadata-Flavor: Google' "http://metadata.google.internal/computeMetadata/v1/instance/attributes/user")
 mkdir -p "/home/$user/ssd/save/"
-gsutil cp -r /mnt/disks/ssd/* "gs:://${user}-dev-machine"
+gsutil cp -r /mnt/disks/ssd/ "gs://${user}-dev-machine"
 sudo shutdown now
